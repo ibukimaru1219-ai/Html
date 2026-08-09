@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML けいじばん (Firebase版)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: #f5f5f7;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      color: #333;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 500px;
+      background: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      padding: 20px;
+      flex: 1;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    h2, h3 {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    input[type="text"], input[type="password"], input[type="email"], textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    textarea {
+      height: 100px;
+      font-family: monospace;
+      resize: vertical;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007aff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    button:active {
+      opacity: 0.8;
+    }
+
+    .btn-secondary {
+      background-color: #8e8e93;
+    }
+
+    .btn-danger {
+      background-color: #ff3b30;
+    }
+
+    header {
+      background-color: #f8f8f8;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 5px;
+    }
+
+    .nav-tabs button {
+      padding: 6px 12px;
+      font-size: 12px;
+      margin: 0;
+      width: auto;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .card {
+      position: relative;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      height: 120px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafafa;
+      font-weight: bold;
+      word-break: break-all;
+      text-align: center;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .card:hover {
+      background-color: #f0f0f5;
+    }
+
+    .card.favorite-card {
+      border: 2px solid #ffcc00;
+      background: #fffdf0;
+    }
+
+    .admin-card {
+      background-color: #eef6ff;
+      border-color: #007aff;
+      color: #007aff;
+      justify-content: center;
+      height: 120px;
+    }
+
+    .card-top-bar {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .star-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #ccc;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+      width: auto;
+      line-height: 1;
+    }
+
+    .star-btn.active {
+      color: #ffcc00;
+    }
+
+    .card-title {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      margin: 4px 0;
+      overflow: hidden;
+    }
+
+    .card-bottom-bar {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .download-btn {
+      background: #e5f2ff;
+      color: #007aff;
+      border: 1px solid #007aff;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      width: auto;
+      margin: 0;
+    }
+
+    .admin-menu {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .user-card-item {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .user-info-row {
+      font-size: 13px;
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .user-actions button {
+      padding: 6px;
+      font-size: 12px;
+      margin: 0;
+    }
+
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .list-item-controls {
+      display: flex;
+      gap: 5px;
+    }
+
+    .list-item-controls button {
+      padding: 4px 8px;
+      font-size: 12px;
+      width: auto;
+      margin: 0;
+    }
+
+    .error-msg {
+      color: red;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .user-info-banner {
+      background: #e5f2ff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .file-upload-box {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .file-input {
+      width: 100%;
+      margin-top: 4px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .blocked-box {
+      text-align: center;
+      margin: auto 0;
+      padding: 20px;
+      background: #fff0f0;
+      border: 2px solid #ff3b30;
+      border-radius: 12px;
+    }
+
+    .timer-display {
+      font-size: 22px;
+      font-weight: bold;
+      color: #ff3b30;
+      margin: 20px 0;
+      padding: 10px;
+      background: #ffffff;
+      border-radius: 8px;
+      border: 1px dashed #ff3b30;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 15px;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      width: 100%;
+      height: 90%;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .modal-overlay.fullscreen-mode {
+      padding: 0;
+    }
+
+    .modal-overlay.fullscreen-mode .modal-content {
+      width: 100vw;
+      height: 100vh;
+      border-radius: 0;
+    }
+
+    .ai-notice {
+      background: #34c759;
+      color: white;
+      font-size: 11px;
+      padding: 6px;
+      text-align: center;
+      display: none;
+    }
+
+    .modal-header {
+      padding: 10px 12px;
+      background: #f8f8f8;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 15px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .modal-header-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .modal-header-actions button {
+      margin: 0;
+      width: auto;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .modal-body {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container" id="appContainer">
+
+  <!-- 1. 初期画面 -->
+  <div id="screen-initial" class="screen active">
+    <h1 style="text-align: center; margin-top: 50px; margin-bottom: 30px;">HTML けいじばん</h1>
+    <div style="margin-top: auto; margin-bottom: 50px;">
+      <button onclick="showScreen('screen-login')">ログイン</button>
+      <button onclick="showScreen('screen-signup')" class="btn-secondary">新規登録</button>
+    </div>
+  </div>
+
+  <!-- 2. ログイン画面 -->
+  <div id="screen-login" class="screen">
+    <h2>ログイン</h2>
+    <input type="text" id="login-id" placeholder="ID">
+    <input type="password" id="login-pass" placeholder="パスワード">
+    <input type="email" id="login-email" placeholder="Gmail (〜@gmail.com)">
+    <div id="login-error" class="error-msg"></div>
+    <button onclick="handleLogin()">完了</button>
+    <button onclick="showScreen('screen-initial')" class="btn-secondary">戻る</button>
+  </div>
+
+  <!-- 3. 新規作成画面 -->
+  <div id="screen-signup" class="screen">
+    <h2>新規作成</h2>
+    <input type="text" id="signup-id" placeholder="ID">
+    <input type="password" id="signup-pass" placeholder="パスワード">
+    <input type="email" id="signup-email" placeholder="Gmail (〜@gmail.com)">
+    <div id="signup-error" class="error-msg"></div>
+    <button onclick="handleSignup()">完了</button>
+    <button onclick="showScreen('screen-initial')" class="btn-secondary">戻る</button>
+  </div>
+
+  <!-- 共通ヘッダー -->
+  <header id="main-header" style="display: none;">
+    <div style="font-weight: bold;">HTMLけいじばん</div>
+    <div class="nav-tabs">
+      <button onclick="showScreen('screen-home')">HTML入力</button>
+      <button onclick="showScreen('screen-account')">アカウント</button>
+    </div>
+  </header>
+
+  <!-- 4. ホーム画面 -->
+  <div id="screen-home" class="screen">
+    <div class="user-info-banner">ログイン中: <span id="current-user-display"></span></div>
+
+    <div class="file-upload-box">
+      <label style="font-size: 13px; font-weight: bold;">1. 表示タイトル</label>
+      <input type="text" id="html-title-input" placeholder="例: Webストレージ管理ツール">
+
+      <label style="font-size: 13px; font-weight: bold;">2. ファイルから読み込む（任意）</label>
+      <input type="file" id="html-file-input" class="file-input" accept=".html,.htm,.txt" onchange="handleFileSelect(event)">
+
+      <label style="font-size: 13px; font-weight: bold;">3. コード直接入力（任意）</label>
+      <textarea id="html-code-input" placeholder="<iframe src='https://www.youtube.com/embed/...'></iframe>"></textarea>
+
+      <button onclick="addHtmlContent()">追加・投稿する</button>
+    </div>
+    
+    <div class="card-grid" id="html-card-grid">
+      <div class="card admin-card" onclick="openAdminAuth()">
+        かんり者
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. アカウント画面 -->
+  <div id="screen-account" class="screen">
+    <h2>アカウント設定</h2>
+    <div style="margin-bottom: 20px;">
+      <p>現在のID: <strong id="account-current-id"></strong></p>
+      <input type="text" id="new-id-input" placeholder="新しいID" style="margin-top: 10px;">
+      <button onclick="changeUserId()">IDを変更する</button>
+    </div>
+    <button onclick="handleLogout()" class="btn-danger" style="margin-top: auto;">ログアウト</button>
+  </div>
+
+  <!-- 6. 管理者画面 -->
+  <div id="screen-admin" class="screen">
+    <h2>管理者画面</h2>
+    
+    <div id="admin-auth">
+      <p style="margin-bottom: 10px;">パスワードを入力してください：</p>
+      <input type="password" id="admin-pass" placeholder="パスワード">
+      <button onclick="checkAdminPass()">認証</button>
+      <button onclick="showScreen('screen-home')" class="btn-secondary">戻る</button>
+    </div>
+
+    <div id="admin-content" style="display: none;">
+      <div class="admin-menu">
+        <button onclick="showAdminTab('block')">ユーザー管理</button>
+        <button onclick="showAdminTab('edit')" class="btn-secondary">HTML編集</button>
+      </div>
+
+      <div id="admin-tab-block">
+        <h3>登録ユーザー一覧</h3>
+        <div id="admin-user-list"></div>
+      </div>
+
+      <div id="admin-tab-edit" style="display: none;">
+        <h3>HTMLリスト編集</h3>
+        <div id="admin-html-list"></div>
+      </div>
+
+      <button onclick="showScreen('screen-home')" class="btn-secondary" style="margin-top: 30px;">ホームへ戻る</button>
+    </div>
+  </div>
+
+  <!-- 7. 強制ブロック画面 -->
+  <div id="screen-blocked" class="screen">
+    <div class="blocked-box">
+      <h2 style="color: #ff3b30; margin-bottom: 10px;">利用が制限されています</h2>
+      <p style="font-size: 14px; color: #666;">管理者によってアカウントが一時的にブロックされています。</p>
+      
+      <div style="margin-top: 20px; font-weight: bold; font-size: 14px;">解除までの残り時間：</div>
+      <div id="blocked-timer-display" class="timer-display">計算中...</div>
+      
+      <button onclick="handleLogout()" class="btn-secondary" style="margin-top: 10px;">ログアウトする</button>
+    </div>
+  </div>
+
+  <!-- 8. HTML使用・閲覧モーダル -->
+  <div id="view-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div id="ai-notice" class="ai-notice">🤖 AI検知: 埋め込み・動画を検出したため、フル画面表示に切り替えました</div>
+      <div class="modal-header">
+        <h3 id="modal-title">HTMLプレビュー</h3>
+        <div class="modal-header-actions">
+          <button id="modal-dl-btn">📥 保存</button>
+          <button onclick="closeModal()" class="btn-secondary">閉じる</button>
+        </div>
+      </div>
+      <iframe id="modal-iframe" class="modal-body" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; camera; microphone; geolocation" allowfullscreen></iframe>
+    </div>
+  </div>
+
+</div>
+
+<!-- Firebase SDK の読み込み -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+  import { 
+    getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy 
+  } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+  // 発行された正しいFirebase設定
+  const firebaseConfig = {
+    apiKey: "AIzaSyCyVJFmFkJYv_4PKfhjceAUp46UuKlinyk",
+    authDomain: "html-8681d.firebaseapp.com",
+    projectId: "html-8681d",
+    storageBucket: "html-8681d.firebasestorage.app",
+    messagingSenderId: "859458888743",
+    appId: "1:859458888743:web:7862cb0939da943003da02",
+    measurementId: "G-D3WYTNM7PC"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let users = [];
+  let htmlList = [];
+  let currentUser = localStorage.getItem('app_current_user') || null;
+  let timerInterval = null;
+
+  // --- 初期データの監視（リアルタイム受信） ---
+  window.addEventListener('DOMContentLoaded', () => {
+    // 1. HTML投稿データのリアルタイム受信
+    const qHtml = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    onSnapshot(qHtml, (snapshot) => {
+      htmlList = snapshot.docs.map(doc => ({
+        docId: doc.id,
+        ...doc.data()
+      }));
+      renderHome();
+      renderAdminLists();
+    });
+
+    // 2. ユーザーデータのリアルタイム受信
+    const qUsers = collection(db, "users");
+    onSnapshot(qUsers, (snapshot) => {
+      users = snapshot.docs.map(doc => ({
+        docId: doc.id,
+        ...doc.data()
+      }));
+      checkCurrentUserStatus();
+      renderAdminLists();
+    });
+  });
+
+  function isValidGmail(email) {
+    return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(email.trim());
+  }
+
+  function checkCurrentUserStatus() {
+    if (!currentUser) {
+      showScreen('screen-initial');
+      return;
+    }
+
+    const u = users.find(x => x.id === currentUser);
+    if (u && u.blockedUntil && u.blockedUntil > Date.now()) {
+      showBlockedScreen(u.blockedUntil);
+    } else {
+      const activeScreen = document.querySelector('.screen.active');
+      if (!activeScreen || activeScreen.id === 'screen-initial' || activeScreen.id === 'screen-blocked') {
+        showScreen('screen-home');
+      }
+    }
+  }
+
+  window.showScreen = function(screenId) {
+    if (currentUser) {
+      const u = users.find(x => x.id === currentUser);
+      if (u && u.blockedUntil && u.blockedUntil > Date.now()) {
+        showBlockedScreen(u.blockedUntil);
+        return;
+      }
+    }
+
+    if (timerInterval) clearInterval(timerInterval);
+
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+
+    const header = document.getElementById('main-header');
+    if (['screen-home', 'screen-account'].includes(screenId)) {
+      header.style.display = 'flex';
+      renderHome();
+      renderAccount();
+    } else {
+      header.style.display = 'none';
+    }
+  };
+
+  function showBlockedScreen(blockedUntil) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-blocked').classList.add('active');
+    document.getElementById('main-header').style.display = 'none';
+
+    if (timerInterval) clearInterval(timerInterval);
+
+    function updateTimer() {
+      const remaining = blockedUntil - Date.now();
+
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+        const u = users.find(x => x.id === currentUser);
+        if (u) {
+          updateDoc(doc(db, "users", u.docId), { blockedUntil: null });
+        }
+        alert('ブロック期間が終了しました。');
+        showScreen('screen-home');
+        return;
+      }
+
+      const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+      document.getElementById('blocked-timer-display').textContent = 
+        `${days}日 ${hours}時間 ${minutes}分 ${seconds}秒`;
+    }
+
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 1000);
+  }
+
+  // --- 新規登録 / ログイン ---
+  window.handleSignup = async function() {
+    const id = document.getElementById('signup-id').value.trim();
+    const pass = document.getElementById('signup-pass').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const errorEl = document.getElementById('signup-error');
+
+    if (!id || !pass || !email) {
+      errorEl.textContent = 'すべての項目を入力してください';
+      return;
+    }
+
+    if (!isValidGmail(email)) {
+      errorEl.textContent = 'Gmailのメールアドレス（〜@gmail.com）を入力してください';
+      return;
+    }
+
+    if (users.some(u => u.id === id)) {
+      errorEl.textContent = '※このIDは既に使われています';
+      return;
+    }
+
+    await addDoc(collection(db, "users"), {
+      id: id,
+      pass: pass,
+      email: email,
+      blockedUntil: null
+    });
+
+    currentUser = id;
+    localStorage.setItem('app_current_user', currentUser);
+    errorEl.textContent = '';
+    showScreen('screen-home');
+  };
+
+  window.handleLogin = function() {
+    const id = document.getElementById('login-id').value.trim();
+    const pass = document.getElementById('login-pass').value.trim();
+    const email = document.getElementById('login-email').value.trim();
+    const errorEl = document.getElementById('login-error');
+
+    if (!isValidGmail(email)) {
+      errorEl.textContent = 'Gmailの形式（〜@gmail.com）が正しくありません';
+      return;
+    }
+
+    const user = users.find(u => u.id === id && u.pass === pass && u.email === email);
+
+    if (!user) {
+      errorEl.textContent = '入力情報が間違っています';
+      return;
+    }
+
+    currentUser = id;
+    localStorage.setItem('app_current_user', currentUser);
+    errorEl.textContent = '';
+
+    if (user.blockedUntil && user.blockedUntil > Date.now()) {
+      showBlockedScreen(user.blockedUntil);
+    } else {
+      showScreen('screen-home');
+    }
+  };
+
+  window.handleLogout = function() {
+    if (timerInterval) clearInterval(timerInterval);
+    currentUser = null;
+    localStorage.removeItem('app_current_user');
+    showScreen('screen-initial');
+  };
+
+  // --- お気に入りトグル（Firestore同期） ---
+  window.toggleFavorite = async function(event, docId) {
+    event.stopPropagation();
+    const item = htmlList.find(x => x.docId === docId);
+    if (item) {
+      await updateDoc(doc(db, "posts", docId), {
+        isFavorite: !item.isFavorite
+      });
+    }
+  };
+
+  // --- ファイルダウンロード ---
+  window.downloadHtmlFile = function(event, docId) {
+    if (event) event.stopPropagation();
+    const item = htmlList.find(x => x.docId === docId);
+    if (!item) return;
+
+    const blob = new Blob([item.content], { type: 'text/html;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    
+    let fileName = item.title;
+    if (!fileName.toLowerCase().endsWith('.html') && !fileName.toLowerCase().endsWith('.htm')) {
+      fileName += '.html';
+    }
+
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // --- ホーム画面描画 ---
+  function renderHome() {
+    const userDisplay = document.getElementById('current-user-display');
+    if (userDisplay) userDisplay.textContent = currentUser || '';
+
+    const grid = document.getElementById('html-card-grid');
+    if (!grid) return;
+
+    grid.innerHTML = `
+      <div class="card admin-card" onclick="openAdminAuth()">
+        かんり者
+      </div>
+    `;
+
+    const sortedList = [
+      ...htmlList.filter(item => item.isFavorite),
+      ...htmlList.filter(item => !item.isFavorite)
+    ];
+
+    sortedList.forEach(item => {
+      const card = document.createElement('div');
+      card.className = `card ${item.isFavorite ? 'favorite-card' : ''}`;
+      
+      card.innerHTML = `
+        <div class="card-top-bar">
+          <button class="star-btn ${item.isFavorite ? 'active' : ''}" onclick="toggleFavorite(event, '${item.docId}')">
+            ${item.isFavorite ? '★' : '☆'}
+          </button>
+        </div>
+        <div class="card-title">${escapeHtml(item.title)}</div>
+        <div class="card-bottom-bar">
+          <button class="download-btn" onclick="downloadHtmlFile(event, '${item.docId}')">📥 保存</button>
+        </div>
+      `;
+
+      card.onclick = (e) => {
+        if (e.target.closest('.star-btn') || e.target.closest('.download-btn')) return;
+        openHtmlModal(item.docId);
+      };
+
+      grid.appendChild(card);
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  window.handleFileSelect = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const titleInput = document.getElementById('html-title-input');
+    const codeInput = document.getElementById('html-code-input');
+
+    if (!titleInput.value) {
+      titleInput.value = file.name;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      codeInput.value = e.target.result;
+    };
+    reader.readAsText(file);
+  };
+
+  window.addHtmlContent = async function() {
+    const titleInput = document.getElementById('html-title-input');
+    const codeInput = document.getElementById('html-code-input');
+    const fileInput = document.getElementById('html-file-input');
+
+    const title = titleInput.value.trim() || (fileInput.files[0] ? fileInput.files[0].name : '無題のHTML');
+    const content = codeInput.value.trim();
+
+    if (!content) {
+      alert('コードを入力するかファイルを選択してください');
+      return;
+    }
+
+    await addDoc(collection(db, "posts"), {
+      title: title,
+      content: content,
+      isFavorite: false,
+      createdAt: Date.now()
+    });
+
+    titleInput.value = '';
+    codeInput.value = '';
+    fileInput.value = '';
+
+    alert(`「${title}」を追加しました！`);
+  };
+
+  // --- HTMLモーダル表示 ---
+  function openHtmlModal(docId) {
+    const item = htmlList.find(x => x.docId === docId);
+    if (!item) return;
+
+    document.getElementById('modal-title').textContent = item.title;
+    document.getElementById('modal-dl-btn').onclick = (e) => downloadHtmlFile(e, item.docId);
+
+    const modal = document.getElementById('view-modal');
+    const iframe = document.getElementById('modal-iframe');
+    const aiNotice = document.getElementById('ai-notice');
+
+    const isSpecialContent = /youtube\.com|youtu\.be|vimeo\.com|<iframe|<video/i.test(item.content);
+
+    if (isSpecialContent) {
+      aiNotice.style.display = 'block';
+      modal.classList.add('fullscreen-mode');
+    } else {
+      aiNotice.style.display = 'none';
+      modal.classList.remove('fullscreen-mode');
+    }
+
+    modal.style.display = 'flex';
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write(item.content);
+    iframeDoc.close();
+  }
+
+  window.closeModal = function() {
+    const modal = document.getElementById('view-modal');
+    modal.style.display = 'none';
+    modal.classList.remove('fullscreen-mode');
+
+    const iframe = document.getElementById('modal-iframe');
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write('');
+    iframeDoc.close();
+  };
+
+  // --- アカウント設定 ---
+  function renderAccount() {
+    const accId = document.getElementById('account-current-id');
+    if (accId) accId.textContent = currentUser || '';
+  }
+
+  window.changeUserId = async function() {
+    const newId = document.getElementById('new-id-input').value.trim();
+    if (!newId) return;
+
+    if (users.some(u => u.id === newId)) {
+      alert('そのIDは既に使われています');
+      return;
+    }
+
+    const user = users.find(u => u.id === currentUser);
+    if (user) {
+      await updateDoc(doc(db, "users", user.docId), { id: newId });
+      currentUser = newId;
+      localStorage.setItem('app_current_user', currentUser);
+      document.getElementById('new-id-input').value = '';
+      renderAccount();
+      alert('IDを変更しました');
+    }
+  };
+
+  // --- 管理者画面 ---
+  window.openAdminAuth = function() {
+    showScreen('screen-admin');
+    document.getElementById('admin-auth').style.display = 'block';
+    document.getElementById('admin-content').style.display = 'none';
+    document.getElementById('admin-pass').value = '';
+  };
+
+  window.checkAdminPass = function() {
+    if (document.getElementById('admin-pass').value === '12191105') {
+      document.getElementById('admin-auth').style.display = 'none';
+      document.getElementById('admin-content').style.display = 'block';
+      renderAdminLists();
+    } else {
+      alert('パスワードが違います');
+    }
+  };
+
+  window.showAdminTab = function(tab) {
+    document.getElementById('admin-tab-block').style.display = tab === 'block' ? 'block' : 'none';
+    document.getElementById('admin-tab-edit').style.display = tab === 'edit' ? 'block' : 'none';
+  };
+
+  function renderAdminLists() {
+    const userListEl = document.getElementById('admin-user-list');
+    if (!userListEl) return;
+    userListEl.innerHTML = '';
+
+    if (users.length === 0) {
+      userListEl.innerHTML = '<p style="text-align:center; color:#888;">登録ユーザーはいません</p>';
+    }
+
+    users.forEach(u => {
+      const isBlocked = u.blockedUntil && u.blockedUntil > Date.now();
+      const card = document.createElement('div');
+      card.className = 'user-card-item';
+      card.innerHTML = `
+        <div class="user-info-row"><strong>ID (名前):</strong> ${u.id} ${isBlocked ? '<span style="color:red;">(ブロック中)</span>' : ''}</div>
+        <div class="user-info-row"><strong>パスワード:</strong> ${u.pass}</div>
+        <div class="user-info-row"><strong>Gmail:</strong> ${u.email}</div>
+        <div class="user-actions">
+          <button onclick="forceRenameUser('${u.docId}', '${u.id}')">名前を強制変更</button>
+          ${isBlocked 
+            ? `<button class="btn-secondary" onclick="unblockUser('${u.docId}', '${u.id}')">ブロック解除</button>` 
+            : `<button class="btn-danger" onclick="setBlockTime('${u.docId}', '${u.id}')">時間指定ブロック</button>`
+          }
+        </div>
+      `;
+      userListEl.appendChild(card);
+    });
+
+    const htmlListEl = document.getElementById('admin-html-list');
+    if (!htmlListEl) return;
+    htmlListEl.innerHTML = '';
+    htmlList.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      div.innerHTML = `
+        <span>${escapeHtml(item.title)}</span>
+        <div class="list-item-controls">
+          <button onclick="renameHtml('${item.docId}')">名前変更</button>
+          <button class="btn-danger" onclick="deleteHtml('${item.docId}')">削除</button>
+        </div>
+      `;
+      htmlListEl.appendChild(div);
+    });
+  }
+
+  window.setBlockTime = async function(docId, userId) {
+    const daysStr = prompt('ブロックする「日数（日）」を入力してください:', '0');
+    if (daysStr === null) return;
+    const hoursStr = prompt('ブロックする「時間」を入力してください:', '0');
+    if (hoursStr === null) return;
+    const minutesStr = prompt('ブロックする「分数（分）」を入力してください:', '0');
+    if (minutesStr === null) return;
+
+    const d = parseInt(daysStr) || 0;
+    const h = parseInt(hoursStr) || 0;
+    const m = parseInt(minutesStr) || 0;
+
+    const totalMs = ((d * 24 + h) * 60 + m) * 60 * 1000;
+
+    if (totalMs <= 0) {
+      alert('1分以上の時間を設定してください');
+      return;
+    }
+
+    await updateDoc(doc(db, "users", docId), {
+      blockedUntil: Date.now() + totalMs
+    });
+    alert(`ユーザー「${userId}」を ${d}日 ${h}時間 ${m}分 ブロックしました`);
+  };
+
+  window.unblockUser = async function(docId, userId) {
+    await updateDoc(doc(db, "users", docId), {
+      blockedUntil: null
+    });
+    alert(`ユーザー「${userId}」のブロックを解除しました`);
+  };
+
+  window.forceRenameUser = async function(docId, oldId) {
+    const newId = prompt(`「${oldId}」の新しい名前(ID)を入力してください:`);
+    if (!newId) return;
+
+    if (users.some(u => u.id === newId)) {
+      alert('そのIDは既に使われています');
+      return;
+    }
+
+    await updateDoc(doc(db, "users", docId), { id: newId });
+    if (currentUser === oldId) {
+      currentUser = newId;
+      localStorage.setItem('app_current_user', currentUser);
+    }
+    alert('名前を変更しました');
+  };
+
+  window.renameHtml = async function(docId) {
+    const newName = prompt('新しいファイル名を入力してください:');
+    if (newName) {
+      await updateDoc(doc(db, "posts", docId), { title: newName });
+    }
+  };
+
+  window.deleteHtml = async function(docId) {
+    if (confirm('本当に削除しますか？')) {
+      await deleteDoc(doc(db, "posts", docId));
+    }
+  };
+</script>
+
+</body>
+</html>
