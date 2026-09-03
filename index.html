@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HTML けいじばん (Firebase版・完全版)</title>
+  <title>HTML けいじばん (Firebase版・フル画面対応版)</title>
   <style>
     * {
       box-sizing: border-box;
@@ -18,23 +18,26 @@
       justify-content: center;
       min-height: 100vh;
       color: #333;
+      width: 100vw;
+      overflow-x: hidden;
     }
 
+    /* 画面いっぱいに広がるように最大幅制限を解除 */
     .app-container {
       width: 100%;
-      max-width: 768px; /* タブレットサイズに合わせて最大幅を拡張 */
+      max-width: none;
       background: #ffffff;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: none;
       position: relative;
     }
 
     .screen {
       display: none;
       flex-direction: column;
-      padding: 20px;
+      padding: 15px;
       flex: 1;
     }
 
@@ -108,7 +111,7 @@
       width: auto;
     }
 
-    /* タブレットでは3列、スマホでは2列に自動切り替え */
+    /* グリッドを画面幅に合わせて自動拡張 */
     .card-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -118,7 +121,13 @@
 
     @media (min-width: 600px) {
       .card-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .card-grid {
+        grid-template-columns: repeat(6, 1fr);
       }
     }
 
@@ -126,7 +135,7 @@
       position: relative;
       border: 1px solid #ccc;
       border-radius: 8px;
-      height: 130px;
+      height: 140px;
       padding: 8px;
       display: flex;
       flex-direction: column;
@@ -154,7 +163,7 @@
       border-color: #007aff;
       color: #007aff;
       justify-content: center;
-      height: 130px;
+      height: 140px;
     }
 
     .card-top-bar {
@@ -308,6 +317,7 @@
       border: 1px dashed #ff3b30;
     }
 
+    /* モーダルを常に完全に画面いっぱいに表示する設定 */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -319,43 +329,31 @@
       justify-content: center;
       align-items: center;
       z-index: 100;
-      padding: 15px;
+      padding: 0;
     }
 
     .modal-content {
       background: #ffffff;
-      width: 100%;
-      max-width: 700px;
-      height: 85vh;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      transition: all 0.3s;
-    }
-
-    .modal-overlay.fullscreen-mode {
-      padding: 0;
-    }
-
-    .modal-overlay.fullscreen-mode .modal-content {
       width: 100vw;
       height: 100vh;
       max-width: none;
       border-radius: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .ai-notice {
       background: #34c759;
       color: white;
-      font-size: 11px;
-      padding: 6px;
+      font-size: 12px;
+      padding: 8px;
       text-align: center;
-      display: none;
+      display: block;
     }
 
     .modal-header {
-      padding: 10px 12px;
+      padding: 10px 15px;
       background: #f8f8f8;
       border-bottom: 1px solid #ddd;
       display: flex;
@@ -365,7 +363,7 @@
 
     .modal-header h3 {
       margin: 0;
-      font-size: 15px;
+      font-size: 16px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -379,8 +377,8 @@
     .modal-header-actions button {
       margin: 0;
       width: auto;
-      padding: 6px 10px;
-      font-size: 12px;
+      padding: 6px 12px;
+      font-size: 13px;
     }
 
     .modal-body {
@@ -866,16 +864,8 @@
     const iframe = document.getElementById('modal-iframe');
     const aiNotice = document.getElementById('ai-notice');
 
-    const isSpecialContent = /youtube\.com|youtu\.be|vimeo\.com|<iframe|<video/i.test(item.content);
-
-    if (isSpecialContent) {
-      aiNotice.style.display = 'block';
-      modal.classList.add('fullscreen-mode');
-    } else {
-      aiNotice.style.display = 'none';
-      modal.classList.remove('fullscreen-mode');
-    }
-
+    // 常に画面いっぱいのフル表示にするため、通知も表示状態にする
+    aiNotice.style.display = 'block';
     modal.style.display = 'flex';
 
     const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
@@ -887,7 +877,6 @@
   window.closeModal = function() {
     const modal = document.getElementById('view-modal');
     modal.style.display = 'none';
-    modal.classList.remove('fullscreen-mode');
 
     const iframe = document.getElementById('modal-iframe');
     const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
