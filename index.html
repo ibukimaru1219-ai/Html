@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HTML けいじばん (Firebase版・フル画面対応版)</title>
+  <title>HTML けいじばん (CSSカスタマイズ対応版)</title>
   <style>
     * {
       box-sizing: border-box;
@@ -22,7 +22,6 @@
       overflow-x: hidden;
     }
 
-    /* 画面いっぱいに広がるように最大幅制限を解除 */
     .app-container {
       width: 100%;
       max-width: none;
@@ -50,7 +49,7 @@
       text-align: center;
     }
 
-    input[type="text"], input[type="password"], input[type="email"], textarea {
+    input[type="text"], input[type="password"], input[type="email"], input[type="url"], select, textarea {
       width: 100%;
       padding: 12px;
       margin-bottom: 12px;
@@ -105,13 +104,25 @@
     }
 
     .nav-tabs button {
-      padding: 6px 12px;
+      padding: 6px 10px;
       font-size: 12px;
       margin: 0;
       width: auto;
+      position: relative;
     }
 
-    /* グリッドを画面幅に合わせて自動拡張 */
+    /* 未読バッジ */
+    .badge-dot {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 8px;
+      height: 8px;
+      background-color: #ff3b30;
+      border-radius: 50%;
+      display: none;
+    }
+
     .card-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -135,7 +146,7 @@
       position: relative;
       border: 1px solid #ccc;
       border-radius: 8px;
-      height: 140px;
+      height: 150px;
       padding: 8px;
       display: flex;
       flex-direction: column;
@@ -163,19 +174,26 @@
       border-color: #007aff;
       color: #007aff;
       justify-content: center;
-      height: 140px;
+      height: 150px;
     }
 
     .card-top-bar {
       width: 100%;
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-author {
+      font-size: 10px;
+      color: #007aff;
+      font-weight: normal;
     }
 
     .star-btn {
       background: none;
       border: none;
-      font-size: 20px;
+      font-size: 18px;
       color: #ccc;
       cursor: pointer;
       padding: 0;
@@ -193,7 +211,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 13px;
       margin: 4px 0;
       overflow: hidden;
     }
@@ -202,14 +220,15 @@
       width: 100%;
       display: flex;
       justify-content: center;
+      gap: 4px;
     }
 
-    .download-btn {
+    .card-btn {
       background: #e5f2ff;
       color: #007aff;
       border: 1px solid #007aff;
-      font-size: 11px;
-      padding: 3px 8px;
+      font-size: 10px;
+      padding: 2px 6px;
       border-radius: 4px;
       width: auto;
       margin: 0;
@@ -221,7 +240,7 @@
       margin-bottom: 20px;
     }
 
-    .user-card-item {
+    .user-card-item, .mail-card-item {
       background: #f9f9f9;
       border: 1px solid #ddd;
       border-radius: 8px;
@@ -229,7 +248,7 @@
       margin-bottom: 12px;
     }
 
-    .user-info-row {
+    .user-info-row, .mail-info-row {
       font-size: 13px;
       margin-bottom: 4px;
       word-break: break-all;
@@ -317,7 +336,44 @@
       border: 1px dashed #ff3b30;
     }
 
-    /* モーダルを常に完全に画面いっぱいに表示する設定 */
+    .sample-btn-group {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .sample-btn-group button {
+      flex: 1;
+      font-size: 12px;
+      padding: 8px;
+      margin-bottom: 0;
+    }
+
+    /* ポップアップ通知スタイル */
+    .toast-notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #34c759;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 1000;
+      display: none;
+      animation: fadeInOut 4s forwards;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-20px); }
+      15% { opacity: 1; transform: translateY(0); }
+      85% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-20px); }
+    }
+
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -387,9 +443,32 @@
       height: 100%;
       border: none;
     }
+
+    .news-modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    .news-date {
+      color: #8e8e93;
+      font-size: 13px;
+      margin-bottom: 15px;
+    }
+
+    .news-text {
+      white-space: pre-wrap;
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
   </style>
+  <!-- カスタムCSSが動的に挿入される要素 -->
+  <style id="user-custom-css"></style>
 </head>
 <body>
+
+<!-- 通知ポップアップ -->
+<div id="toast-notification" class="toast-notification"></div>
 
 <div class="app-container" id="appContainer">
 
@@ -429,16 +508,21 @@
     <div style="font-weight: bold;">HTMLけいじばん</div>
     <div class="nav-tabs">
       <button onclick="showScreen('screen-home')">HTML入力</button>
+      <button onclick="showScreen('screen-news')">
+        ニュース
+        <span id="news-badge" class="badge-dot"></span>
+      </button>
+      <button onclick="showScreen('screen-mail')">メール</button>
       <button onclick="showScreen('screen-account')">アカウント</button>
     </div>
   </header>
 
-  <!-- 4. ホーム画面 -->
+  <!-- 4. ホーム画面 (掲示板) -->
   <div id="screen-home" class="screen">
     <div class="user-info-banner">ログイン中: <span id="current-user-display"></span></div>
 
     <div class="file-upload-box">
-      <label style="font-size: 13px; font-weight: bold;">1. 表示タイトル</label>
+      <label style="font-size: 13px; font-weight: bold;" id="post-form-title-label">1. 表示タイトル</label>
       <input type="text" id="html-title-input" placeholder="例: Webストレージ管理ツール">
 
       <label style="font-size: 13px; font-weight: bold;">2. ファイルから読み込む（任意）</label>
@@ -447,7 +531,8 @@
       <label style="font-size: 13px; font-weight: bold;">3. コード直接入力（任意）</label>
       <textarea id="html-code-input" placeholder="<iframe src='https://www.youtube.com/embed/...'></iframe>"></textarea>
 
-      <button onclick="addHtmlContent()">追加・投稿する</button>
+      <button id="post-submit-btn" onclick="addHtmlContent()">追加・投稿する</button>
+      <button id="post-cancel-edit-btn" onclick="cancelEditHtml()" class="btn-secondary" style="display: none;">編集をキャンセル</button>
     </div>
     
     <div class="card-grid" id="html-card-grid">
@@ -457,18 +542,68 @@
     </div>
   </div>
 
-  <!-- 5. アカウント画面 -->
+  <!-- 5. ニュース画面 -->
+  <div id="screen-news" class="screen">
+    <h2>お知らせ・ニュース</h2>
+    <div class="card-grid" id="news-card-grid"></div>
+  </div>
+
+  <!-- 6. 内蔵メール画面 -->
+  <div id="screen-mail" class="screen">
+    <h2>内蔵メール</h2>
+    
+    <div class="file-upload-box">
+      <label style="font-size: 13px; font-weight: bold;">送信先ユーザー</label>
+      <select id="mail-recipient-select">
+        <option value="">宛先を選択してください</option>
+      </select>
+
+      <label style="font-size: 13px; font-weight: bold;">メッセージ本文</label>
+      <textarea id="mail-body-input" placeholder="メッセージを入力してください"></textarea>
+
+      <button onclick="sendMail()">メールを送信する</button>
+    </div>
+
+    <h3>受信トレイ</h3>
+    <div id="mail-list" style="margin-top: 10px;"></div>
+  </div>
+
+  <!-- 7. アカウント画面（CSSカスタマイズ機能追加） -->
   <div id="screen-account" class="screen">
     <h2>アカウント設定</h2>
-    <div style="margin-bottom: 20px;">
+    
+    <div style="margin-bottom: 25px;">
       <p>現在のID: <strong id="account-current-id"></strong></p>
       <input type="text" id="new-id-input" placeholder="新しいID" style="margin-top: 10px;">
       <button onclick="changeUserId()">IDを変更する</button>
     </div>
-    <button onclick="handleLogout()" class="btn-danger" style="margin-top: auto;">ログアウト</button>
+
+    <!-- カスタムCSS設定枠 -->
+    <div class="file-upload-box" style="margin-bottom: 25px;">
+      <h3 style="margin-bottom: 10px; text-align: left; font-size: 15px;">🎨 デザインカスタマイズ (CSS)</h3>
+      <p style="font-size: 12px; color: #666; margin-bottom: 10px;">アプリ全体の背景色や文字色、ボタンの見た目を変更できます。</p>
+      
+      <!-- サンプルプリセットボタン -->
+      <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 5px;">サンプルテーマ（ワンタップで適用）:</label>
+      <div class="sample-btn-group">
+        <button type="button" class="btn-secondary" onclick="applyCssSample('dark')">🌙 ダーク</button>
+        <button type="button" class="btn-secondary" onclick="applyCssSample('pink')">🌸 サクラ</button>
+        <button type="button" class="btn-secondary" onclick="applyCssSample('cyber')">⚡ サイバー</button>
+        <button type="button" class="btn-danger" onclick="applyCssSample('reset')">🔄 リセット</button>
+      </div>
+
+      <textarea id="custom-css-input" style="height: 120px; font-size: 13px;" placeholder="ここにCSSを入力...
+例:
+body { background-color: #1a1a1a; color: #fff; }
+button { background-color: #ff3b30; }"></textarea>
+
+      <button onclick="saveCustomCss()">CSSを適用して保存</button>
+    </div>
+
+    <button onclick="handleLogout()" class="btn-danger" style="margin-top: auto;">ログアウトする</button>
   </div>
 
-  <!-- 6. 管理者画面 -->
+  <!-- 8. 管理者画面 -->
   <div id="screen-admin" class="screen">
     <h2>管理者画面</h2>
     
@@ -483,6 +618,7 @@
       <div class="admin-menu">
         <button onclick="showAdminTab('block')">ユーザー管理</button>
         <button onclick="showAdminTab('edit')" class="btn-secondary">HTML編集</button>
+        <button onclick="showAdminTab('news')" class="btn-secondary">ニュース投稿</button>
       </div>
 
       <div id="admin-tab-block">
@@ -495,11 +631,30 @@
         <div id="admin-html-list"></div>
       </div>
 
+      <div id="admin-tab-news" style="display: none;">
+        <h3>ニュースの新規投稿</h3>
+        <div class="file-upload-box">
+          <label style="font-size: 13px; font-weight: bold;">ニュースタイトル</label>
+          <input type="text" id="admin-news-title" placeholder="例: システムメンテナンスのお知らせ">
+
+          <label style="font-size: 13px; font-weight: bold;">本文</label>
+          <textarea id="admin-news-body" placeholder="お知らせの詳細を入力してください"></textarea>
+
+          <label style="font-size: 13px; font-weight: bold;">関連リンクURL（任意）</label>
+          <input type="url" id="admin-news-link" placeholder="https://example.com">
+
+          <button onclick="addNewsContent()">ニュースを配信する</button>
+        </div>
+
+        <h3 style="margin-top: 20px;">配信中のニュース一覧</h3>
+        <div id="admin-news-list"></div>
+      </div>
+
       <button onclick="showScreen('screen-home')" class="btn-secondary" style="margin-top: 30px;">ホームへ戻る</button>
     </div>
   </div>
 
-  <!-- 7. 強制ブロック画面 -->
+  <!-- 9. 強制ブロック画面 -->
   <div id="screen-blocked" class="screen">
     <div class="blocked-box">
       <h2 style="color: #ff3b30; margin-bottom: 10px;">利用が制限されています</h2>
@@ -512,7 +667,7 @@
     </div>
   </div>
 
-  <!-- 8. HTML使用・閲覧モーダル -->
+  <!-- HTML閲覧モーダル -->
   <div id="view-modal" class="modal-overlay">
     <div class="modal-content">
       <div id="ai-notice" class="ai-notice">🤖 AI検知: 埋め込み・動画を検出したため、フル画面表示に切り替えました</div>
@@ -527,13 +682,30 @@
     </div>
   </div>
 
+  <!-- ニュース閲覧モーダル -->
+  <div id="news-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="news-modal-title">ニュース詳細</h3>
+        <div class="modal-header-actions">
+          <button onclick="closeNewsModal()" class="btn-secondary">閉じる</button>
+        </div>
+      </div>
+      <div class="modal-body news-modal-body">
+        <div id="news-modal-date" class="news-date"></div>
+        <div id="news-modal-body" class="news-text"></div>
+        <div id="news-modal-link-box"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Firebase SDK の読み込み -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
   import { 
-    getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy 
+    getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, where 
   } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -551,10 +723,106 @@
 
   let users = [];
   let htmlList = [];
+  let newsList = [];
+  let mailList = [];
   let currentUser = localStorage.getItem('app_current_user') || null;
+  let editingDocId = null;
   let timerInterval = null;
+  let isFirstMailLoad = true;
+  let lastNewsTime = parseInt(localStorage.getItem('last_news_time') || '0');
+
+  // カスタムCSSプリセット用サンプル
+  const cssSamples = {
+    dark: `body { background-color: #121212 !important; color: #e0e0e0 !important; }
+.app-container { background-color: #1e1e1e !important; }
+header, .file-upload-box, .card, .user-card-item, .mail-card-item { background-color: #2c2c2e !important; color: #fff !important; border-color: #444 !important; }
+input, textarea, select { background-color: #3a3a3c !important; color: #fff !important; border-color: #555 !important; }
+button { background-color: #0a84ff !important; }
+.card-author { color: #64d2ff !important; }`,
+
+    pink: `body { background-color: #fff0f5 !important; color: #4a2e35 !important; }
+.app-container { background-color: #fff6f8 !important; }
+header, .file-upload-box, .card { background-color: #ffffff !important; border-color: #ffb6c1 !important; }
+button { background-color: #ff69b4 !important; }
+.btn-secondary { background-color: #ffb6c1 !important; }
+.user-info-banner { background-color: #ffe4e1 !important; color: #d87093 !important; }`,
+
+    cyber: `body { background-color: #0d0221 !important; color: #00f6ff !important; }
+.app-container { background-color: #0f0529 !important; }
+header, .file-upload-box, .card { background-color: #190a38 !important; border: 1px solid #ff007f !important; color: #00f6ff !important; }
+button { background-color: #ff007f !important; color: #fff !important; box-shadow: 0 0 10px #ff007f; }
+input, textarea, select { background-color: #0d0221 !important; color: #00f6ff !important; border-color: #00f6ff !important; }`,
+
+    reset: ``
+  };
+
+  // 起動時に保存されたカスタムCSSをロード
+  function loadSavedCss() {
+    const savedCss = localStorage.getItem('app_custom_css') || '';
+    document.getElementById('user-custom-css').textContent = savedCss;
+    const inputEl = document.getElementById('custom-css-input');
+    if (inputEl) inputEl.value = savedCss;
+  }
+
+  // サンプルCSSのセット
+  window.applyCssSample = function(type) {
+    const css = cssSamples[type] || '';
+    document.getElementById('custom-css-input').value = css;
+    saveCustomCss();
+  };
+
+  // CSSの反映と保存
+  window.saveCustomCss = function() {
+    const css = document.getElementById('custom-css-input').value;
+    document.getElementById('user-custom-css').textContent = css;
+    localStorage.setItem('app_custom_css', css);
+    showToast('🎨 デザイン（CSS）を適用・保存しました！');
+  };
+
+  // 効果音「ピコン！」生成用 (Web Audio API)
+  function playPikonSound() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.15);
+
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    } catch (e) {
+      console.log('Audio Context error', e);
+    }
+  }
+
+  // ポップアップ通知
+  function showToast(message) {
+    playPikonSound();
+    const toast = document.getElementById('toast-notification');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    
+    toast.style.animation = 'none';
+    toast.offsetHeight;
+    toast.style.animation = 'fadeInOut 4s forwards';
+
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 4000);
+  }
 
   window.addEventListener('DOMContentLoaded', () => {
+    loadSavedCss();
+
+    // 1. HTML投稿の監視
     const qHtml = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     onSnapshot(qHtml, (snapshot) => {
       htmlList = snapshot.docs.map(doc => ({
@@ -565,6 +833,7 @@
       renderAdminLists();
     });
 
+    // 2. ユーザー情報の監視
     const qUsers = collection(db, "users");
     onSnapshot(qUsers, (snapshot) => {
       users = snapshot.docs.map(doc => ({
@@ -573,6 +842,49 @@
       }));
       checkCurrentUserStatus();
       renderAdminLists();
+      updateRecipientSelect();
+    });
+
+    // 3. ニュースの監視＆未読バッジ処理
+    const qNews = query(collection(db, "news"), orderBy("createdAt", "desc"));
+    onSnapshot(qNews, (snapshot) => {
+      newsList = snapshot.docs.map(doc => ({
+        docId: doc.id,
+        ...doc.data()
+      }));
+
+      if (newsList.length > 0) {
+        const latestTime = newsList[0].createdAt || 0;
+        if (latestTime > lastNewsTime) {
+          document.getElementById('news-badge').style.display = 'block';
+        }
+      }
+      renderNews();
+      renderAdminLists();
+    });
+
+    // 4. メール受信の監視（ピコン！通知付き）
+    const qMails = query(collection(db, "mails"), orderBy("createdAt", "desc"));
+    onSnapshot(qMails, (snapshot) => {
+      const newMails = snapshot.docs.map(doc => ({
+        docId: doc.id,
+        ...doc.data()
+      }));
+
+      if (!isFirstMailLoad && currentUser) {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === "added") {
+            const data = change.doc.data();
+            if (data.to === currentUser) {
+              showToast(`ピコン！${data.from}からメールが届きました！`);
+            }
+          }
+        });
+      }
+      isFirstMailLoad = false;
+
+      mailList = newMails;
+      renderMails();
     });
   });
 
@@ -612,10 +924,19 @@
     document.getElementById(screenId).classList.add('active');
 
     const header = document.getElementById('main-header');
-    if (['screen-home', 'screen-account'].includes(screenId)) {
+    if (['screen-home', 'screen-news', 'screen-mail', 'screen-account'].includes(screenId)) {
       header.style.display = 'flex';
-      renderHome();
-      renderAccount();
+      if (screenId === 'screen-home') renderHome();
+      if (screenId === 'screen-news') {
+        renderNews();
+        document.getElementById('news-badge').style.display = 'none';
+        if (newsList.length > 0) {
+          lastNewsTime = newsList[0].createdAt || Date.now();
+          localStorage.setItem('last_news_time', lastNewsTime.toString());
+        }
+      }
+      if (screenId === 'screen-mail') renderMails();
+      if (screenId === 'screen-account') renderAccount();
     } else {
       header.style.display = 'none';
     }
@@ -778,24 +1099,54 @@
     sortedList.forEach(item => {
       const card = document.createElement('div');
       card.className = `card ${item.isFavorite ? 'favorite-card' : ''}`;
+
+      const isAuthor = item.author === currentUser;
       
       card.innerHTML = `
         <div class="card-top-bar">
+          <span class="card-author">${item.author ? '@' + escapeHtml(item.author) : ''}</span>
           <button class="star-btn ${item.isFavorite ? 'active' : ''}" onclick="toggleFavorite(event, '${item.docId}')">
             ${item.isFavorite ? '★' : '☆'}
           </button>
         </div>
         <div class="card-title">${escapeHtml(item.title)}</div>
         <div class="card-bottom-bar">
-          <button class="download-btn" onclick="downloadHtmlFile(event, '${item.docId}')">📥 保存</button>
+          <button class="card-btn" onclick="downloadHtmlFile(event, '${item.docId}')">📥 保存</button>
+          ${isAuthor ? `<button class="card-btn" onclick="startEditHtml(event, '${item.docId}')">✏️ 編集</button>` : ''}
         </div>
       `;
 
       card.onclick = (e) => {
-        if (e.target.closest('.star-btn') || e.target.closest('.download-btn')) return;
+        if (e.target.closest('.star-btn') || e.target.closest('.card-btn')) return;
         openHtmlModal(item.docId);
       };
 
+      grid.appendChild(card);
+    });
+  }
+
+  function renderNews() {
+    const grid = document.getElementById('news-card-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (newsList.length === 0) {
+      grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #8e8e93; margin-top: 20px;">現在配信されているニュースはありません</p>';
+      return;
+    }
+
+    newsList.forEach(item => {
+      const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('ja-JP', {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      }) : '';
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-title">${escapeHtml(item.title)}</div>
+        <div class="card-bottom-bar" style="font-size:10px; color:#8e8e93;">${dateStr}</div>
+      `;
+      card.onclick = () => openNewsModal(item.docId);
       grid.appendChild(card);
     });
   }
@@ -839,18 +1190,155 @@
       return;
     }
 
-    await addDoc(collection(db, "posts"), {
+    if (editingDocId) {
+      await updateDoc(doc(db, "posts", editingDocId), {
+        title: title,
+        content: content,
+        updatedAt: Date.now()
+      });
+      alert(`「${title}」を更新しました（バージョン更新）`);
+      cancelEditHtml();
+    } else {
+      await addDoc(collection(db, "posts"), {
+        title: title,
+        content: content,
+        author: currentUser,
+        isFavorite: false,
+        createdAt: Date.now()
+      });
+      alert(`「${title}」を追加しました！`);
+      titleInput.value = '';
+      codeInput.value = '';
+      fileInput.value = '';
+    }
+  };
+
+  window.startEditHtml = function(event, docId) {
+    event.stopPropagation();
+    const item = htmlList.find(x => x.docId === docId);
+    if (!item) return;
+
+    editingDocId = docId;
+    document.getElementById('html-title-input').value = item.title;
+    document.getElementById('html-code-input').value = item.content;
+
+    document.getElementById('post-form-title-label').textContent = '1. 表示タイトル (編集モード)';
+    document.getElementById('post-submit-btn').textContent = '更新（バージョンを上書き）';
+    document.getElementById('post-cancel-edit-btn').style.display = 'block';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.cancelEditHtml = function() {
+    editingDocId = null;
+    document.getElementById('html-title-input').value = '';
+    document.getElementById('html-code-input').value = '';
+    document.getElementById('html-file-input').value = '';
+
+    document.getElementById('post-form-title-label').textContent = '1. 表示タイトル';
+    document.getElementById('post-submit-btn').textContent = '追加・投稿する';
+    document.getElementById('post-cancel-edit-btn').style.display = 'none';
+  };
+
+  function updateRecipientSelect() {
+    const select = document.getElementById('mail-recipient-select');
+    if (!select) return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">宛先を選択してください</option>';
+
+    users.forEach(u => {
+      if (u.id !== currentUser) {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `@${u.id}`;
+        select.appendChild(opt);
+      }
+    });
+    select.value = currentVal;
+  }
+
+  window.sendMail = async function() {
+    const recipient = document.getElementById('mail-recipient-select').value;
+    const bodyInput = document.getElementById('mail-body-input');
+    const body = bodyInput.value.trim();
+
+    if (!recipient) {
+      alert('宛先を選択してください');
+      return;
+    }
+
+    if (!body) {
+      alert('メッセージ本文を入力してください');
+      return;
+    }
+
+    await addDoc(collection(db, "mails"), {
+      from: currentUser,
+      to: recipient,
+      body: body,
+      createdAt: Date.now()
+    });
+
+    bodyInput.value = '';
+    alert(`@${recipient} にメールを送信しました！`);
+  };
+
+  function renderMails() {
+    const mailListEl = document.getElementById('mail-list');
+    if (!mailListEl) return;
+    mailListEl.innerHTML = '';
+
+    const myMails = mailList.filter(m => m.to === currentUser || m.from === currentUser);
+
+    if (myMails.length === 0) {
+      mailListEl.innerHTML = '<p style="text-align:center; color:#8e8e93; padding: 20px;">受信・送信したメールはありません</p>';
+      return;
+    }
+
+    myMails.forEach(m => {
+      const isReceived = m.to === currentUser;
+      const dateStr = new Date(m.createdAt).toLocaleString('ja-JP');
+      const card = document.createElement('div');
+      card.className = 'mail-card-item';
+      card.style.borderColor = isReceived ? '#34c759' : '#007aff';
+
+      card.innerHTML = `
+        <div class="mail-info-row">
+          <strong>${isReceived ? '📨 差出人:' : '📤 宛先:'}</strong> @${escapeHtml(isReceived ? m.from : m.to)}
+        </div>
+        <div class="mail-info-row" style="white-space: pre-wrap; margin: 10px 0;">${escapeHtml(m.body)}</div>
+        <div style="font-size: 11px; color: #8e8e93; text-align: right;">${dateStr}</div>
+      `;
+      mailListEl.appendChild(card);
+    });
+  }
+
+  window.addNewsContent = async function() {
+    const titleInput = document.getElementById('admin-news-title');
+    const bodyInput = document.getElementById('admin-news-body');
+    const linkInput = document.getElementById('admin-news-link');
+
+    const title = titleInput.value.trim();
+    const body = bodyInput.value.trim();
+    const link = linkInput.value.trim();
+
+    if (!title || !body) {
+      alert('ニュースのタイトルと本文を入力してください');
+      return;
+    }
+
+    await addDoc(collection(db, "news"), {
       title: title,
-      content: content,
-      isFavorite: false,
+      body: body,
+      link: link || null,
       createdAt: Date.now()
     });
 
     titleInput.value = '';
-    codeInput.value = '';
-    fileInput.value = '';
+    bodyInput.value = '';
+    linkInput.value = '';
 
-    alert(`「${title}」を追加しました！`);
+    alert(`ニュース「${title}」を投稿しました！`);
   };
 
   function openHtmlModal(docId) {
@@ -867,7 +1355,6 @@
     aiNotice.style.display = 'block';
     modal.style.display = 'flex';
 
-    // srcdocを使ってコードを安全に読み込み、ポインタロックやタッチ入力を正常化
     iframe.srcdoc = item.content;
   }
 
@@ -876,13 +1363,36 @@
     modal.style.display = 'none';
 
     const iframe = document.getElementById('modal-iframe');
-    // iframe内を空にしてゲーム処理を完全にリセット
     iframe.srcdoc = '';
+  };
+
+  function openNewsModal(docId) {
+    const item = newsList.find(x => x.docId === docId);
+    if (!item) return;
+
+    document.getElementById('news-modal-title').textContent = item.title;
+    document.getElementById('news-modal-date').textContent = new Date(item.createdAt).toLocaleString('ja-JP');
+    document.getElementById('news-modal-body').textContent = item.body;
+
+    const linkBox = document.getElementById('news-modal-link-box');
+    if (item.link) {
+      linkBox.innerHTML = `<a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer" style="color:#007aff; word-break:break-all;">🔗 関連リンクを開く</a>`;
+    } else {
+      linkBox.innerHTML = '';
+    }
+
+    document.getElementById('news-modal').style.display = 'flex';
+  }
+
+  window.closeNewsModal = function() {
+    document.getElementById('news-modal').style.display = 'none';
   };
 
   function renderAccount() {
     const accId = document.getElementById('account-current-id');
     if (accId) accId.textContent = currentUser || '';
+    const inputEl = document.getElementById('custom-css-input');
+    if (inputEl) inputEl.value = localStorage.getItem('app_custom_css') || '';
   }
 
   window.changeUserId = async function() {
@@ -925,52 +1435,74 @@
   window.showAdminTab = function(tab) {
     document.getElementById('admin-tab-block').style.display = tab === 'block' ? 'block' : 'none';
     document.getElementById('admin-tab-edit').style.display = tab === 'edit' ? 'block' : 'none';
+    document.getElementById('admin-tab-news').style.display = tab === 'news' ? 'block' : 'none';
   };
 
   function renderAdminLists() {
     const userListEl = document.getElementById('admin-user-list');
-    if (!userListEl) return;
-    userListEl.innerHTML = '';
-
-    if (users.length === 0) {
-      userListEl.innerHTML = '<p style="text-align:center; color:#888;">登録ユーザーはいません</p>';
+    if (userListEl) {
+      userListEl.innerHTML = '';
+      if (users.length === 0) {
+        userListEl.innerHTML = '<p style="text-align:center; color:#888;">登録ユーザーはいません</p>';
+      } else {
+        users.forEach(u => {
+          const isBlocked = u.blockedUntil && u.blockedUntil > Date.now();
+          const card = document.createElement('div');
+          card.className = 'user-card-item';
+          card.innerHTML = `
+            <div class="user-info-row"><strong>ID (名前):</strong> ${u.id} ${isBlocked ? '<span style="color:red;">(ブロック中)</span>' : ''}</div>
+            <div class="user-info-row"><strong>パスワード:</strong> ${u.pass}</div>
+            <div class="user-info-row"><strong>Gmail:</strong> ${u.email}</div>
+            <div class="user-actions">
+              <button onclick="forceRenameUser('${u.docId}', '${u.id}')">名前変更</button>
+              ${isBlocked 
+                ? `<button class="btn-secondary" onclick="unblockUser('${u.docId}', '${u.id}')">解除</button>` 
+                : `<button class="btn-danger" onclick="setBlockTime('${u.docId}', '${u.id}')">ブロック</button>`
+              }
+              <button class="btn-danger" onclick="deleteUserAccount('${u.docId}', '${u.id}')">削除</button>
+            </div>
+          `;
+          userListEl.appendChild(card);
+        });
+      }
     }
 
-    users.forEach(u => {
-      const isBlocked = u.blockedUntil && u.blockedUntil > Date.now();
-      const card = document.createElement('div');
-      card.className = 'user-card-item';
-      card.innerHTML = `
-        <div class="user-info-row"><strong>ID (名前):</strong> ${u.id} ${isBlocked ? '<span style="color:red;">(ブロック中)</span>' : ''}</div>
-        <div class="user-info-row"><strong>パスワード:</strong> ${u.pass}</div>
-        <div class="user-info-row"><strong>Gmail:</strong> ${u.email}</div>
-        <div class="user-actions">
-          <button onclick="forceRenameUser('${u.docId}', '${u.id}')">名前変更</button>
-          ${isBlocked 
-            ? `<button class="btn-secondary" onclick="unblockUser('${u.docId}', '${u.id}')">解除</button>` 
-            : `<button class="btn-danger" onclick="setBlockTime('${u.docId}', '${u.id}')">ブロック</button>`
-          }
-          <button class="btn-danger" onclick="deleteUserAccount('${u.docId}', '${u.id}')">削除</button>
-        </div>
-      `;
-      userListEl.appendChild(card);
-    });
-
     const htmlListEl = document.getElementById('admin-html-list');
-    if (!htmlListEl) return;
-    htmlListEl.innerHTML = '';
-    htmlList.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'list-item';
-      div.innerHTML = `
-        <span>${escapeHtml(item.title)}</span>
-        <div class="list-item-controls">
-          <button onclick="renameHtml('${item.docId}')">名前変更</button>
-          <button class="btn-danger" onclick="deleteHtml('${item.docId}')">削除</button>
-        </div>
-      `;
-      htmlListEl.appendChild(div);
-    });
+    if (htmlListEl) {
+      htmlListEl.innerHTML = '';
+      htmlList.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `
+          <span>${escapeHtml(item.title)}</span>
+          <div class="list-item-controls">
+            <button onclick="renameHtml('${item.docId}')">名前変更</button>
+            <button class="btn-danger" onclick="deleteHtml('${item.docId}')">削除</button>
+          </div>
+        `;
+        htmlListEl.appendChild(div);
+      });
+    }
+
+    const newsListEl = document.getElementById('admin-news-list');
+    if (newsListEl) {
+      newsListEl.innerHTML = '';
+      if (newsList.length === 0) {
+        newsListEl.innerHTML = '<p style="text-align:center; color:#888;">配信中のニュースはありません</p>';
+      } else {
+        newsList.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'list-item';
+          div.innerHTML = `
+            <span>${escapeHtml(item.title)}</span>
+            <div class="list-item-controls">
+              <button class="btn-danger" onclick="deleteNews('${item.docId}')">削除</button>
+            </div>
+          `;
+          newsListEl.appendChild(div);
+        });
+      }
+    }
   }
 
   window.setBlockTime = async function(docId, userId) {
@@ -1039,6 +1571,12 @@
   window.deleteHtml = async function(docId) {
     if (confirm('本当に削除しますか？')) {
       await deleteDoc(doc(db, "posts", docId));
+    }
+  };
+
+  window.deleteNews = async function(docId) {
+    if (confirm('このニュースを削除しますか？')) {
+      await deleteDoc(doc(db, "news", docId));
     }
   };
 </script>
