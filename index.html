@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HTML けいじばん (CSSカスタマイズ対応版)</title>
+  <title>HTML掲示板｜HTML・CSS学習／コミュニティ</title>
+  <meta name="description" content="HTML・CSSの作品を投稿・閲覧し、コメントなどで交流できる学習コミュニティです。">
+  <meta name="category" content="HTML・CSS学習／コミュニティ">
+  <meta name="keywords" content="HTML学習,CSS学習,Web制作,プログラミング学習,コミュニティ">
   <style>
     * {
       box-sizing: border-box;
@@ -503,7 +506,7 @@
 
   <!-- 1. 初期画面 -->
   <div id="screen-initial" class="screen active">
-    <h1 style="text-align: center; margin-top: 50px; margin-bottom: 30px;">HTML けいじばん</h1>
+    <h1 style="text-align: center; margin-top: 50px; margin-bottom: 30px;">HTML掲示板</h1>
     <div style="margin-top: auto; margin-bottom: 50px;">
       <button onclick="showScreen('screen-login')">ログイン</button>
       <button onclick="showScreen('screen-signup')" class="btn-secondary">新規登録</button>
@@ -534,7 +537,7 @@
 
   <!-- 共通ヘッダー -->
   <header id="main-header" style="display: none;">
-    <div style="font-weight: bold;">HTMLけいじばん</div>
+    <div style="font-weight: bold;">HTML掲示板</div>
     <div class="nav-tabs">
       <button onclick="showScreen('screen-home')">HTML入力</button>
       <button onclick="showScreen('screen-news')">
@@ -564,9 +567,14 @@
       <label style="font-size: 13px; font-weight: bold;">3. コード直接入力（任意）</label>
       <textarea id="html-code-input" placeholder="<iframe src='https://www.youtube.com/embed/...'></iframe>"></textarea>
 
-      <label style="font-size: 13px; font-weight: bold;">4. 閲覧・ダウンロード用パスワード（任意）</label>
+      <label style="font-size: 13px; font-weight: bold;">4. パスワード（任意）</label>
       <input type="password" id="html-password-input" placeholder="設定しない場合は空欄">
-      <p style="font-size: 11px; color: #666; margin: -6px 0 12px;">設定すると、HTMLを開くときと保存するときにパスワードが必要になります。</p>
+      <label for="html-password-mode" style="font-size: 13px; font-weight: bold;">パスワードが必要な操作</label>
+      <select id="html-password-mode">
+        <option value="both">閲覧・保存するとき</option>
+        <option value="saveOnly">保存するときのみ（閲覧は自由）</option>
+      </select>
+      <p style="font-size: 11px; color: #666; margin: -6px 0 12px;">パスワードを空欄にすると、どちらの設定でもパスワードは不要です。</p>
 
       <button id="post-submit-btn" onclick="addHtmlContent()">追加・投稿する</button>
       <button id="post-cancel-edit-btn" onclick="cancelEditHtml()" class="btn-secondary" style="display: none;">編集をキャンセル</button>
@@ -671,6 +679,13 @@ button { background-color: #ff3b30; }"></textarea>
         <button onclick="showAdminTab('block')">ユーザー管理</button>
         <button onclick="showAdminTab('edit')" class="btn-secondary">HTML編集</button>
         <button onclick="showAdminTab('news')" class="btn-secondary">ニュース投稿</button>
+        <button onclick="showAdminTab('comments')" class="btn-secondary">コメント管理</button>
+      </div>
+
+      <div id="admin-tab-comments" style="display: none;">
+        <h3>コメント管理</h3>
+        <p style="font-size:13px;color:#666;margin-bottom:12px;">問題のあるコメントだけを選んで削除できます。削除は取り消せません。</p>
+        <div id="admin-comment-list"></div>
       </div>
 
       <div id="admin-tab-block">
@@ -1140,6 +1155,8 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
 
   function verifyHtmlPassword(item, actionLabel) {
     if (!item || !item.password) return true;
+    // 「保存するときのみ」を選んだ投稿は、閲覧時のパスワード確認を省略する。
+    if (item.passwordMode === 'saveOnly' && actionLabel === '閲覧') return true;
     const entered = prompt(`「${item.title}」の${actionLabel}にはパスワードが必要です：`);
     if (entered === null) return false;
     if (entered !== item.password) {
@@ -1304,6 +1321,8 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
       return (!search || haystack.includes(search)) && (!category || (item.category || '') === category);
     });
     filtered.sort((a,b) => {
+      // お気に入りは、選択中の並び順にかかわらず常に上部へ表示する。
+      if (!!a.isFavorite !== !!b.isFavorite) return a.isFavorite ? -1 : 1;
       if (sort === 'oldest') return postTimeValue(a)-postTimeValue(b);
       if (sort === 'likes') {
         const countLikes = item => Array.isArray(item.likes) ? item.likes.length : 0;
@@ -1421,6 +1440,7 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
     const title = titleInput.value.trim() || (fileInput.files[0] ? fileInput.files[0].name : '無題のHTML');
     const content = codeInput.value.trim();
     const password = document.getElementById('html-password-input').value;
+    const passwordMode = document.getElementById('html-password-mode').value || 'both';
     const category = document.getElementById('html-category-input').value.trim();
     const tags = document.getElementById('html-tags-input').value.split(',').map(t=>t.trim()).filter(Boolean);
 
@@ -1434,6 +1454,7 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
         title: title,
         content: content,
         password: password,
+        passwordMode: passwordMode,
         category: category,
         tags: tags,
         updatedAt: Date.now()
@@ -1445,6 +1466,7 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
         title: title,
         content: content,
         password: password,
+        passwordMode: passwordMode,
         category: category,
         tags: tags,
         likes: [],
@@ -1457,6 +1479,7 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
       titleInput.value = '';
       codeInput.value = '';
       document.getElementById('html-password-input').value = '';
+      document.getElementById('html-password-mode').value = 'both';
       document.getElementById('html-category-input').value = '';
       document.getElementById('html-tags-input').value = '';
       fileInput.value = '';
@@ -1473,6 +1496,7 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
     document.getElementById('html-title-input').value = item.title;
     document.getElementById('html-code-input').value = item.content;
     document.getElementById('html-password-input').value = item.password || '';
+    document.getElementById('html-password-mode').value = item.passwordMode || 'both';
     document.getElementById('html-category-input').value = item.category || '';
     document.getElementById('html-tags-input').value = (item.tags || []).join(', ');
 
@@ -1488,6 +1512,7 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
     document.getElementById('html-title-input').value = '';
     document.getElementById('html-code-input').value = '';
     document.getElementById('html-password-input').value = '';
+    document.getElementById('html-password-mode').value = 'both';
     document.getElementById('html-file-input').value = '';
 
     document.getElementById('post-form-title-label').textContent = '1. 表示タイトル';
@@ -1699,6 +1724,65 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
     document.getElementById('admin-tab-block').style.display = tab === 'block' ? 'block' : 'none';
     document.getElementById('admin-tab-edit').style.display = tab === 'edit' ? 'block' : 'none';
     document.getElementById('admin-tab-news').style.display = tab === 'news' ? 'block' : 'none';
+    document.getElementById('admin-tab-comments').style.display = tab === 'comments' ? 'block' : 'none';
+    if (tab === 'comments') renderAdminComments();
+  };
+
+  function renderAdminComments() {
+    const listEl = document.getElementById('admin-comment-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    const entries = [];
+    htmlList.forEach(post => {
+      const comments = Array.isArray(post.comments) ? post.comments : [];
+      comments.forEach((comment, index) => entries.push({ post, comment, index }));
+    });
+
+    if (!entries.length) {
+      listEl.innerHTML = '<p style="text-align:center;color:#888;padding:20px;">コメントはまだありません。</p>';
+      return;
+    }
+
+    entries.sort((a, b) => (Number(b.comment.createdAt) || 0) - (Number(a.comment.createdAt) || 0));
+    entries.forEach(({ post, comment, index }) => {
+      const card = document.createElement('div');
+      card.className = 'user-card-item';
+      const date = comment.createdAt ? new Date(comment.createdAt).toLocaleString('ja-JP') : '日時不明';
+      card.innerHTML = `
+        <div class="user-info-row"><strong>投稿：</strong>${escapeHtml(post.title || '無題')}</div>
+        <div class="user-info-row"><strong>投稿者：</strong>${escapeHtml(comment.author || 'ユーザー')}</div>
+        <div class="user-info-row" style="white-space:pre-wrap;overflow-wrap:anywhere;"><strong>コメント：</strong>${escapeHtml(comment.text || '')}</div>
+        <div class="user-info-row" style="font-size:12px;color:#888;">${escapeHtml(date)}</div>
+        <button class="btn-danger" onclick="deletePostComment('${post.docId}', ${index})">このコメントを削除</button>
+      `;
+      listEl.appendChild(card);
+    });
+  }
+
+  window.deletePostComment = async function(postId, commentIndex) {
+    const post = htmlList.find(item => item.docId === postId);
+    if (!post || !Array.isArray(post.comments) || !post.comments[commentIndex]) {
+      alert('コメントが見つかりません。画面を更新してください。');
+      return;
+    }
+    const target = post.comments[commentIndex];
+    const preview = String(target.text || '').slice(0, 80);
+    if (!confirm(`次のコメントを削除しますか？\n投稿者：${target.author || 'ユーザー'}\nコメント：${preview}${String(target.text || '').length > 80 ? '…' : ''}`)) return;
+
+    const comments = [...post.comments];
+    comments.splice(commentIndex, 1);
+    try {
+      await updateDoc(doc(db, 'posts', postId), { comments });
+      // Firestoreの監視更新を待つ間も管理画面に古いコメントを残さない
+      post.comments = comments;
+      renderAdminComments();
+      if (activeSocialPostId === postId) renderPostSocial(post);
+      renderHome();
+      alert('コメントを削除しました。');
+    } catch (error) {
+      console.error('コメント削除エラー:', error);
+      alert('コメントを削除できませんでした。通信状態とFirestoreのセキュリティルールを確認してください。');
+    }
   };
 
   function renderAdminLists() {
@@ -1767,6 +1851,7 @@ button { background: linear-gradient(90deg,#ff00a8,#7b2cff,#00c8ff) !important; 
         });
       }
     }
+    renderAdminComments();
   }
 
   window.setBlockTime = async function(docId, userId) {
